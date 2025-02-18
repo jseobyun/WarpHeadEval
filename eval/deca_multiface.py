@@ -99,6 +99,8 @@ if __name__ == "__main__":
 
             if args.save:
                 save_dir = os.path.dirname(save_path)
+                pred_save_dir = save_path.replace("results", "predictions").replace(".json", "")
+                os.makedirs(pred_save_dir, exist_ok=True)
                 os.makedirs(save_dir, exist_ok=True)
                 with open(save_path, 'w') as json_file:
                     json.dump(gt2pred, json_file)
@@ -276,6 +278,26 @@ if __name__ == "__main__":
 
             if args.save:
                 save_dir = os.path.dirname(save_path)
+                pred_save_dir = save_path.replace("results", "predictions").replace(".json", "")
+                os.makedirs(pred_save_dir, exist_ok=True)
+                u = (65535 * uv_rn[:, :, 0]).astype(np.uint16)
+                v = (65535 * uv_rn[:, :, 1]).astype(np.uint16)
+                depth_max = 10
+                d = np.clip(d_pred / depth_max, 0, 1) * 65535
+                d = d.astype(np.uint16)
+                c = np.asarray(c_pred).astype(np.float32) * 255
+                c = c.astype(np.uint8)
+
+                u_path = os.path.join(pred_save_dir, "u.png")
+                v_path = os.path.join(pred_save_dir, "v.png")
+                d_path = os.path.join(pred_save_dir, "d.png")
+                c_path = os.path.join(pred_save_dir, "c.jpg")
+
+                cv2.imwrite(u_path, u)
+                cv2.imwrite(v_path, v)
+                cv2.imwrite(d_path, d)
+                cv2.imwrite(c_path, c)
+
                 os.makedirs(save_dir, exist_ok=True)
                 with open(save_path, 'w') as json_file:
                     json.dump(gt2pred, json_file)
