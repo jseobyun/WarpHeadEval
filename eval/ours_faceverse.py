@@ -23,7 +23,7 @@ def parse_config():
     parser.add_argument("--exp_name", default="faceverse_nodino")
     parser.add_argument("--save_root", default="/media/jseob/db974b7f-3790-49e0-acf4-e8511d26cde9/evals/results")
     parser.add_argument("--vis", default=False)
-    parser.add_argument("--do_align", default=False)
+    parser.add_argument("--split", type=int, default=-1)
     parser.add_argument("--save", default=True)
 
     args = parser.parse_args()

@@ -23,6 +23,7 @@ def parse_config():
     parser.add_argument("--benchmark_root", default="/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/datasets/faceverse_benchmark")
     parser.add_argument("--prediction_root", default="/media/jseob/X9/eval/3ddfa-v3/faceverse")
     parser.add_argument("--save_root", default="/media/jseob/db974b7f-3790-49e0-acf4-e8511d26cde9/evals/results")
+    parser.add_argument("--split", type=int, default=-1)
     parser.add_argument("--vis", default=True)
     parser.add_argument("--save", default=False)
 
@@ -47,7 +48,7 @@ def measure_pixel(uv_pred, uv_gt):
 if __name__ == "__main__":
 
     args = parse_config()
-    faceverse = FaceVerseBenchmark(args.benchmark_root)
+    faceverse = FaceVerseBenchmark(args.benchmark_root, split=args.split)
     dfa3dv3 = Preds3DDFAv3FaceVerse(args.prediction_root)
     num_samples = len(faceverse)
     img_h, img_w = 448, 448
