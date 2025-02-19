@@ -4,7 +4,7 @@ import numpy as np
 from utils.data_utils import load_img, load_depth_gt, load_uv, load_mask, load_calib, load_kps
 
 class MultiFaceBenchmark():
-    def __init__(self, root="/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/datasets/multiface_benchmark", downsample=1):
+    def __init__(self, root, downsample=1):
         self.root = root
         self.img_root = os.path.join(root, "images")
         self.depth_root = os.path.join(root, "depths")

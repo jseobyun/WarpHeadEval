@@ -76,7 +76,7 @@ class FaceVerseBenchmark():
 
         if split != -1:
             num_samples = len(self.img_paths)
-            step = int(num_samples//4)
+            step = int(num_samples//4)+1
             start = step*split
             end = step*(split+1)
             end = min(end, num_samples)
