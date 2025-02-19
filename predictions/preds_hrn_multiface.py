@@ -8,35 +8,27 @@ import open3d as o3d
 from utils.data_utils import load_mesh, load_depth_pred, load_uv, load_mask
 
 def trimesh2open3d(mesh_path, triangles_uvs, texture):
-    mesh = trimesh.load_mesh(mesh_path)
-    vertices = mesh.vertices
-    faces = mesh.faces
 
-    # triangles_uvs = []
-    # for i in range(3):
-    #     triangles_uvs.append(uvs[faces[:, i]].reshape(-1, 1, 2))
-    # triangles_uvs = np.concatenate(triangles_uvs, axis=1).reshape(-1, 2)
-
-    vmin = np.min(vertices, axis=0)
-    vmax = np.max(vertices, axis=0)
-
-    bbox_len = np.min(vmax-vmin)
+    mesh = trimesh.load(mesh_path)
+    mesh_verts = np.asarray(mesh.vertices)
+    mesh_faces = np.asarray(mesh.faces)
 
     o3d_mesh = o3d.geometry.TriangleMesh()
-    o3d_mesh.vertices = o3d.utility.Vector3dVector(vertices)
-    o3d_mesh.triangles = o3d.utility.Vector3iVector(faces)
+    o3d_mesh.vertices = o3d.utility.Vector3dVector(mesh_verts)
+    o3d_mesh.triangles = o3d.utility.Vector3iVector(mesh_faces)
+
 
     o3d_mesh.triangle_uvs = o3d.utility.Vector2dVector(triangles_uvs)
     o3d_mesh.textures = [o3d.geometry.Image(texture)]
-    o3d_mesh.triangle_material_ids = o3d.utility.IntVector([0]*len(faces))
+    o3d_mesh.triangle_material_ids = o3d.utility.IntVector([0]*len(mesh_faces))
 
     return o3d_mesh
 
-class PredsDECAMultiface():
-    def __init__(self, root="/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/evals/DECA/multiface_results"):
+class PredsHRNMultiface():
+    def __init__(self, root):
         self.root = root
 
-        self.triangles_uvs = np.load(os.path.join(curr_dir, "../assets/flame59315_uvs_per_face.npy"))
+        self.triangles_uvs = np.load(os.path.join(curr_dir, "../assets/bfmhrn_uvs_per_face_of_flame.npy"))
         self.triangles_uvs = self.triangles_uvs.reshape(-1, 2)
 
         self.triangles_uvs[:, 1] = 1 - self.triangles_uvs[:, 1]
@@ -48,7 +40,7 @@ class PredsDECAMultiface():
         self.texture[:,:,0] = r
         self.texture[:,:,1] = g
 
-        self.kp_idx = np.load(os.path.join(curr_dir, "../assets/flame59315_kp_idx.npy")).reshape(-1)
+        self.kp_idx = np.load(os.path.join(curr_dir, "../assets/hrn_kp_idx.npy")).reshape(-1)
         self.kp_idx = self.kp_idx.astype(np.int32)
         # import cv2
         # texture = cv2.resize(self.texture, dsize=(512, 512))
@@ -75,7 +67,7 @@ class PredsDECAMultiface():
 
 
 
-        print(f"Multifiace predictions of DECA is ready : {len(pred_dirs)}")
+        print(f"Multifiace predictions of HRN is ready : {len(pred_dirs)}")
         self.pred_dirs = pred_dirs
 
 
@@ -102,11 +94,16 @@ class PredsDECAMultiface():
             return None, None, None
 
         subj_id = pred_id.split("/")[-1]
-        mesh_path = os.path.join(self.pred_dirs[index], f"{subj_id}_detail.obj")
+        mesh_path = os.path.join(self.pred_dirs[index], f"{subj_id}_0_hrn_high_mesh.obj")
+        if not os.path.exists(mesh_path):
+            return None, None, None
         o3d_mesh = trimesh2open3d(mesh_path, self.triangles_uvs, self.texture)
         verts = np.asarray(o3d_mesh.vertices)
         kps = verts[self.kp_idx]
         del self.pred_dirs[index]
 
-
         return o3d_mesh, kps, pred_id
+
+
+if __name__ == "__main__":
+    dataset = PredsHRNMultiface()

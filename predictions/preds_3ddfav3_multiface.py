@@ -5,26 +5,10 @@ sys.path.append(os.path.join(curr_dir, ".."))
 import trimesh
 import numpy as np
 import open3d as o3d
-from utils.data_utils import load_mesh, load_depth_pred, load_uv, load_mask
 
 def trimesh2open3d(mesh_path, triangles_uvs, texture):
-    mesh = trimesh.load_mesh(mesh_path)
-    vertices = mesh.vertices
-    faces = mesh.faces
-
-    # triangles_uvs = []
-    # for i in range(3):
-    #     triangles_uvs.append(uvs[faces[:, i]].reshape(-1, 1, 2))
-    # triangles_uvs = np.concatenate(triangles_uvs, axis=1).reshape(-1, 2)
-
-    vmin = np.min(vertices, axis=0)
-    vmax = np.max(vertices, axis=0)
-
-    bbox_len = np.min(vmax-vmin)
-
-    o3d_mesh = o3d.geometry.TriangleMesh()
-    o3d_mesh.vertices = o3d.utility.Vector3dVector(vertices)
-    o3d_mesh.triangles = o3d.utility.Vector3iVector(faces)
+    o3d_mesh = o3d.io.read_triangle_mesh(mesh_path)
+    faces = np.asarray(o3d_mesh.triangles)
 
     o3d_mesh.triangle_uvs = o3d.utility.Vector2dVector(triangles_uvs)
     o3d_mesh.textures = [o3d.geometry.Image(texture)]
@@ -32,11 +16,28 @@ def trimesh2open3d(mesh_path, triangles_uvs, texture):
 
     return o3d_mesh
 
-class PredsDECAMultiface():
-    def __init__(self, root="/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/evals/DECA/multiface_results"):
+class Preds3DDFAv3Multiface():
+    def __init__(self, root):
         self.root = root
 
-        self.triangles_uvs = np.load(os.path.join(curr_dir, "../assets/flame59315_uvs_per_face.npy"))
+        verts53215_uvs = np.load(os.path.join(curr_dir, "../assets/bfm_verts_uvs53215.npy"))
+        map53215to35709 = np.load(os.path.join(curr_dir, "../assets/bfm_vidx53215to35709.npy"))
+        self.verts35709_uvs = verts53215_uvs[map53215to35709]
+
+
+        ###
+        # mesh = o3d.io.read_triangle_mesh("/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/evals/3DDFA_V2/multiface_results/m--20171024--0000--002757580--GHS/E002_Swallow/cam400002_frame000431/cam400002_frame000431.ply")
+        # verts = np.asarray(mesh.vertices)
+        # faces = np.asarray(mesh.triangles)
+        # ###
+        # self.triangles_uvs = []
+        # for face in faces:
+        #     uvs = self.verts38365_uvs[face].reshape(1, 3, 2)
+        #     self.triangles_uvs.append(uvs)
+        # self.triangles_uvs = np.concatenate(self.triangles_uvs, axis=0)
+        # np.save("../assets/bfm38365_uvs_per_face.npy", self.triangles_uvs)
+
+        self.triangles_uvs = np.load(os.path.join(curr_dir, "../assets/bfm35709_uvs_per_face_of_flame.npy"))
         self.triangles_uvs = self.triangles_uvs.reshape(-1, 2)
 
         self.triangles_uvs[:, 1] = 1 - self.triangles_uvs[:, 1]
@@ -48,7 +49,7 @@ class PredsDECAMultiface():
         self.texture[:,:,0] = r
         self.texture[:,:,1] = g
 
-        self.kp_idx = np.load(os.path.join(curr_dir, "../assets/flame59315_kp_idx.npy")).reshape(-1)
+        self.kp_idx = np.load(os.path.join(curr_dir, "../assets/bfm_kidx35709.npy")).reshape(-1)
         self.kp_idx = self.kp_idx.astype(np.int32)
         # import cv2
         # texture = cv2.resize(self.texture, dsize=(512, 512))
@@ -75,7 +76,7 @@ class PredsDECAMultiface():
 
 
 
-        print(f"Multifiace predictions of DECA is ready : {len(pred_dirs)}")
+        print(f"Multifiace predictions of 3DDFAV3 is ready : {len(pred_dirs)}")
         self.pred_dirs = pred_dirs
 
 
@@ -102,11 +103,14 @@ class PredsDECAMultiface():
             return None, None, None
 
         subj_id = pred_id.split("/")[-1]
-        mesh_path = os.path.join(self.pred_dirs[index], f"{subj_id}_detail.obj")
+        mesh_path = os.path.join(self.pred_dirs[index], f"{subj_id}_extractTex.obj")
+        if not os.path.exists(mesh_path):
+            return None, None, None
         o3d_mesh = trimesh2open3d(mesh_path, self.triangles_uvs, self.texture)
         verts = np.asarray(o3d_mesh.vertices)
         kps = verts[self.kp_idx]
         del self.pred_dirs[index]
 
-
         return o3d_mesh, kps, pred_id
+
+

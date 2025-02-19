@@ -94,7 +94,7 @@ class PredsEMOCAMultiface():
         for pidx, pred_dir in enumerate(self.pred_dirs):
             if sample_id in pred_dir:
                 index=  pidx
-                pred_id = pred_dir.split("/")[7:]
+                pred_id = pred_dir.split("/")[-3:]
                 pred_id = "/".join(pred_id)
                 break
         if pred_id is None or index is None:

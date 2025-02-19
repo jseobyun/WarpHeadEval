@@ -5,26 +5,10 @@ sys.path.append(os.path.join(curr_dir, ".."))
 import trimesh
 import numpy as np
 import open3d as o3d
-from utils.data_utils import load_mesh, load_depth_pred, load_uv, load_mask
 
 def trimesh2open3d(mesh_path, triangles_uvs, texture):
-    mesh = trimesh.load_mesh(mesh_path)
-    vertices = mesh.vertices
-    faces = mesh.faces
-
-    # triangles_uvs = []
-    # for i in range(3):
-    #     triangles_uvs.append(uvs[faces[:, i]].reshape(-1, 1, 2))
-    # triangles_uvs = np.concatenate(triangles_uvs, axis=1).reshape(-1, 2)
-
-    vmin = np.min(vertices, axis=0)
-    vmax = np.max(vertices, axis=0)
-
-    bbox_len = np.min(vmax-vmin)
-
-    o3d_mesh = o3d.geometry.TriangleMesh()
-    o3d_mesh.vertices = o3d.utility.Vector3dVector(vertices)
-    o3d_mesh.triangles = o3d.utility.Vector3iVector(faces)
+    o3d_mesh = o3d.io.read_triangle_mesh(mesh_path)
+    faces = np.asarray(o3d_mesh.triangles)
 
     o3d_mesh.triangle_uvs = o3d.utility.Vector2dVector(triangles_uvs)
     o3d_mesh.textures = [o3d.geometry.Image(texture)]
@@ -32,11 +16,15 @@ def trimesh2open3d(mesh_path, triangles_uvs, texture):
 
     return o3d_mesh
 
-class PredsDECAMultiface():
-    def __init__(self, root="/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/evals/DECA/multiface_results"):
+class Preds3DDFAv3FaceVerse():
+    def __init__(self, root):
         self.root = root
+        verts53215_uvs = np.load(os.path.join(curr_dir, "../assets/bfm_verts_uvs53215.npy"))
+        map53215to35709 = np.load(os.path.join(curr_dir, "../assets/bfm_vidx53215to35709.npy"))
+        self.verts35709_uvs = verts53215_uvs[map53215to35709]
 
-        self.triangles_uvs = np.load(os.path.join(curr_dir, "../assets/flame59315_uvs_per_face.npy"))
+
+        self.triangles_uvs = np.load(os.path.join(curr_dir, "../assets/bfm35709_uvs_per_face_of_flame.npy"))
         self.triangles_uvs = self.triangles_uvs.reshape(-1, 2)
 
         self.triangles_uvs[:, 1] = 1 - self.triangles_uvs[:, 1]
@@ -48,7 +36,7 @@ class PredsDECAMultiface():
         self.texture[:,:,0] = r
         self.texture[:,:,1] = g
 
-        self.kp_idx = np.load(os.path.join(curr_dir, "../assets/flame59315_kp_idx.npy")).reshape(-1)
+        self.kp_idx = np.load(os.path.join(curr_dir, "../assets/bfm_kidx35709.npy")).reshape(-1)
         self.kp_idx = self.kp_idx.astype(np.int32)
         # import cv2
         # texture = cv2.resize(self.texture, dsize=(512, 512))
@@ -64,20 +52,13 @@ class PredsDECAMultiface():
         pred_dirs = []
         for subj_name in subj_names:
             pred_root = os.path.join(self.root, subj_name)
-            expr_names = sorted(os.listdir(pred_root))
-
-            for expr_name in expr_names:
-                pred_subroot = os.path.join(pred_root, expr_name)
-
-                pred_dirnames = sorted(os.listdir(pred_subroot))
-                for pred_dirname in pred_dirnames:
-                    pred_dirs.append(os.path.join(pred_subroot, pred_dirname))
+            pred_dirnames = sorted(os.listdir(pred_root))
+            for pred_dirname in pred_dirnames:
+                pred_dirs.append(os.path.join(pred_root, pred_dirname))
 
 
-
-        print(f"Multifiace predictions of DECA is ready : {len(pred_dirs)}")
+        print(f"Faceverse predictions of 3DDFAV3 is ready : {len(pred_dirs)}")
         self.pred_dirs = pred_dirs
-
 
     def search_index(self, sample_id):
         sample_id = sample_id
@@ -87,7 +68,7 @@ class PredsDECAMultiface():
         for pidx, pred_dir in enumerate(self.pred_dirs):
             if sample_id in pred_dir:
                 index=  pidx
-                pred_id = pred_dir.split("/")[-3:]
+                pred_id = pred_dir.split("/")[-2:]
                 pred_id = "/".join(pred_id)
                 break
         if pred_id is None or index is None:
@@ -102,11 +83,14 @@ class PredsDECAMultiface():
             return None, None, None
 
         subj_id = pred_id.split("/")[-1]
-        mesh_path = os.path.join(self.pred_dirs[index], f"{subj_id}_detail.obj")
+        mesh_path = os.path.join(self.pred_dirs[index], f"{subj_id}_extractTex.obj")
+        if not os.path.exists(mesh_path):
+            return None, None, None
         o3d_mesh = trimesh2open3d(mesh_path, self.triangles_uvs, self.texture)
         verts = np.asarray(o3d_mesh.vertices)
         kps = verts[self.kp_idx]
         del self.pred_dirs[index]
 
-
         return o3d_mesh, kps, pred_id
+
+

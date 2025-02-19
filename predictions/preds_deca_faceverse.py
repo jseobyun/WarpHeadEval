@@ -32,8 +32,8 @@ def trimesh2open3d(mesh_path, triangles_uvs, texture):
 
     return o3d_mesh
 
-class PredsDECAMultiface():
-    def __init__(self, root="/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/evals/DECA/multiface_results"):
+class PredsDECAFaceverse():
+    def __init__(self, root="/media/jseob/7c338ab7-a4a5-460a-a3bb-6c26309b51ba/evals/DECA/faceverse_results"):
         self.root = root
 
         self.triangles_uvs = np.load(os.path.join(curr_dir, "../assets/flame59315_uvs_per_face.npy"))
@@ -64,18 +64,16 @@ class PredsDECAMultiface():
         pred_dirs = []
         for subj_name in subj_names:
             pred_root = os.path.join(self.root, subj_name)
-            expr_names = sorted(os.listdir(pred_root))
-
-            for expr_name in expr_names:
-                pred_subroot = os.path.join(pred_root, expr_name)
-
-                pred_dirnames = sorted(os.listdir(pred_subroot))
-                for pred_dirname in pred_dirnames:
-                    pred_dirs.append(os.path.join(pred_subroot, pred_dirname))
-
+            ###
+            if pred_root.endswith(".zip"):
+                continue
+            ###
+            pred_dirnames = sorted(os.listdir(pred_root))
+            for pred_dirname in pred_dirnames:
+                pred_dirs.append(os.path.join(pred_root, pred_dirname))
 
 
-        print(f"Multifiace predictions of DECA is ready : {len(pred_dirs)}")
+        print(f"Faceverse predictions of DECA is ready : {len(pred_dirs)}")
         self.pred_dirs = pred_dirs
 
 
@@ -87,11 +85,11 @@ class PredsDECAMultiface():
         for pidx, pred_dir in enumerate(self.pred_dirs):
             if sample_id in pred_dir:
                 index=  pidx
-                pred_id = pred_dir.split("/")[-3:]
+                pred_id = pred_dir.split("/")[7:]
                 pred_id = "/".join(pred_id)
                 break
         if pred_id is None or index is None:
-            return None, None,
+            return None, None
         return pred_id, index
 
     def __call__(self, sample_id):
